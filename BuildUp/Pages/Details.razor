@@ -1,0 +1,245 @@
+﻿@page "/details/{actionId?}"
+@inject ActionServices actionServices
+@inject TimeEntryServices timeEntryServices
+
+<h1 class="text-center user-select-none">Action Details</h1>
+
+<p class="text-danger text-center m-0 user-select-none">@ErrorMsg</p>
+<div class="row user-select-none">
+    <div class="col-12 col-lg-4 col-xl-3">
+        <div id="details-all-actions-card" class="card details-card">
+            @if (Actions.Count == 0)
+            {
+                <p class="m-auto">
+                    Create an Action to Start
+                </p>
+            }
+            else
+            {
+                <div class="card-header">
+                    <h4 class="text-center my-1">All Actions</h4>
+                </div>
+                <div class="card-body overflow-auto">
+                    <div class="list-group">
+                        @for (int i = 0; i < Actions.Count; i++)
+                        {
+                            var btnNo = i;
+                            <button class="list-group-item d-flex"
+                                    @onclick="@(e => SelectAction(btnNo))">
+                                <div class="display-name d-flex m-auto">@Actions[i].Name</div>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+        <div id="action-details-card" class="card details-card overflow-auto">
+            @if (selection >= 0 && selection < Actions.Count)
+            {
+                <div class="card-header">
+                    <div class="position-relative">
+                        <button class="btn btn-danger px-1 py-0 position-absolute top-50 start-0 translate-middle-y @DetailsDisplay" @onclick="DeleteAction">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-circle" viewBox="0 0 16 16">
+                                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
+                            </svg>
+                        </button>
+                        <h4 class="text-center my-1 @DetailsDisplay">@Actions[selection].Name</h4>
+                        <input class="form-control w-75 ms-2 @DetailsEdit" type="text" required @bind="@ActionNameEdited">
+                        <button class="btn btn-secondary px-1 py-0 position-absolute top-50 end-0 translate-middle-y" @onclick="EditAction">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square @DetailsDisplay" viewBox="0 0 16 16">
+                                <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"></path>
+                                <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"></path>
+                            </svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-circle @DetailsEdit" viewBox="0 0 16 16">
+                                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                                <path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body text-center">
+                    <div class="form-group">
+                        <label class="form-label">Created At: @Actions[selection].CreateTime.ToString("g")</label>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input float-none" type="checkbox" id="lasting" @bind="@Actions[selection].Lasting" disabled>
+                        <label class="form-check-label" for="lasting">This is a Lasting Action.</label>
+                    </div>
+                    <div class="form-group">
+                        <label for="note">Note</label>
+                        <textarea class="form-control mb-3 @DetailsDisplay" id="note-readonly" rows="2" placeholder="@Actions[selection].Note" readonly></textarea>
+                        <textarea class="form-control mb-3 @DetailsEdit" id="note" rows="2" @bind="@ActionNoteEdited"></textarea>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <p class="m-auto">
+                    @(Actions.Count == 0 ? "Create an Action to Start" : "Select an Action to View")
+                </p>
+            }
+        </div>
+    </div>
+    <div class="col-12 col-lg-8 col-xl-9">
+        <div id="time-entries-card" class="card details-card">
+            @if (selection >= 0 && selection < Actions.Count)
+            {
+                <div class="card-header">
+                    <h4 class="text-center my-1">Activities</h4>
+                </div>
+                <div class="card-body text-center table-responsive">
+                    @if (TimeEntriesOfSelected.Count == 0)
+                    {
+                        <h4 class="m-auto">No Activities for this Action.</h4>
+                    }
+                    else
+                    {
+                        <table class="table table-hover table-borderless">
+                            <thead>
+                                <tr>
+                                    @if (Actions[selection].Lasting)
+                                    {
+                                        <th scope="col">Time Start</th>
+                                        <th scope="col">Time End</th>
+                                        <th scope="col">Duration</th>
+                                    }
+                                    else
+                                    {
+                                        <th scope="col">Time</th>
+                                    }
+                                    <th scope="col"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var t in TimeEntriesOfSelected)
+                                {
+                                    <tr>
+                                        @if (Actions[selection].Lasting)
+                                        {
+                                            <td>@t.TimeStart.ToString("g")</td>
+                                            <td>@(t.TimeEnd.HasValue ? t.TimeEnd.Value.ToString("g") : String.Empty)</td>
+                                            <td>@(t.TimeEnd.HasValue ? (t.TimeEnd.Value - t.TimeStart).ToString("%h' h '%m' min'") : String.Empty)</td>
+                                        }
+                                        else
+                                        {
+                                            <td>@t.TimeStart.ToString("g")</td>
+                                        }
+                                        <td>
+                                            <button class="btn btn-danger px-1 py-0" @onclick="@(e => DeleteTimeEntry(t.ID))">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-circle" viewBox="0 0 16 16">
+                                                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                                                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
+                                                </svg>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            }
+            else
+            {
+                <h4 class="m-auto">
+                    @(Actions.Count == 0 ? "Create an Action to Start" : "Select an Action to View")
+                </h4>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string ActionID
+    {
+        get { return actionId.ToString(); }
+        set { int.TryParse(value, out actionId); }
+    }
+
+    List<Data.Action> Actions = new List<Data.Action>();
+    List<TimeEntry> TimeEntriesOfSelected;
+    private int selection = -1, actionId = -1;
+    private string DetailsDisplay = String.Empty,
+        DetailsEdit = "d-none",
+        ActionNameEdited, ActionNoteEdited, ErrorMsg;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshDetails();
+    }
+
+    private async Task RefreshDetails()
+    {
+        Actions = await actionServices.GetActionsAsync();
+        var selected = Actions.FirstOrDefault(a => a.ID == actionId);
+        selection = Actions.IndexOf(selected);
+    }
+
+    private async void SelectAction(int i)
+    {
+        DetailsDisplay = String.Empty;
+        DetailsEdit = "d-none";
+        selection = i;
+        actionId = Actions[selection].ID;
+        TimeEntriesOfSelected = await timeEntryServices.GetTimeEntriesByActionIdAsync(actionId);
+    }
+
+    private async void EditAction()
+    {
+        if (DetailsDisplay == String.Empty && DetailsEdit == "d-none")
+        {
+            DetailsEdit = String.Empty;
+            DetailsDisplay = "d-none";
+            ActionNameEdited = Actions[selection].Name;
+            ActionNoteEdited = Actions[selection].Note;
+        }
+        else
+        {
+            if (String.IsNullOrEmpty(ActionNameEdited)) return;
+            DetailsDisplay = String.Empty;
+            DetailsEdit = "d-none";
+            Data.Action actionToUpdate = new Data.Action
+            {
+                ID = actionId,
+                Name = ActionNameEdited,
+                Note = ActionNoteEdited,
+                RowVersion = Actions[selection].RowVersion
+            };
+            bool result = await actionServices.UpdateActionAsync(actionToUpdate);
+            if (result)
+            {
+                await RefreshDetails();
+                ErrorMsg = String.Empty;
+            }
+            else
+                ErrorMsg = "Error occurred while saving the changes. Please try again.";
+        }
+    }
+
+    private async void DeleteAction()
+    {
+        bool result = await actionServices.DeleteActionAsync(actionId);
+        if (result)
+        {
+            actionId = -1;
+            await RefreshDetails();
+            ErrorMsg = String.Empty;
+        }
+        else
+            ErrorMsg = "Error occurred while deleting the Action. Please try again.";
+    }
+
+    private async void DeleteTimeEntry(int id)
+    {
+        bool result = await timeEntryServices.DeleteTimeEntryAsync(id);
+        if (result)
+        {
+            TimeEntriesOfSelected = await timeEntryServices.GetTimeEntriesByActionIdAsync(actionId);
+            ErrorMsg = String.Empty;
+        }
+        else
+            ErrorMsg = "Error occurred while deleting the Activity. Please try again.";
+    }
+}

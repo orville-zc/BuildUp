@@ -1,0 +1,24 @@
+﻿Add-Migration "Initial"
+Update-Database
+
+
+            migrationBuilder.Sql(
+                @"
+                CREATE TRIGGER SetActionTimestampOnUpdate
+                AFTER UPDATE ON Actions
+                BEGIN
+                    UPDATE Actions
+                    SET RowVersion = randomblob(8)
+                    WHERE rowid = NEW.rowid;
+                END
+            ");
+            migrationBuilder.Sql(
+                @"
+                CREATE TRIGGER SetActionTimestampOnInsert
+                AFTER INSERT ON Actions
+                BEGIN
+                    UPDATE Actions
+                    SET RowVersion = randomblob(8)
+                    WHERE rowid = NEW.rowid;
+                END
+            ");

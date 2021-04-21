@@ -1,0 +1,139 @@
+﻿@page "/"
+@inject ActionServices actionServices
+@inject TimeEntryServices timeEntryServices
+
+<h1 class="text-center user-select-none">BuildUp!</h1>
+<p class="text-danger text-center m-0 user-select-none">@ErrorMsg</p>
+<div class="row py-3 user-select-none">
+    <div class="col-12 col-xl-3 col-md-6 col-lg-4">
+        <div class="card build-up-card text-center my-2">
+            <button type="button" class="btn btn-light w-100 h-100 @AddButtonVisibility" @onclick="ShowAddForm">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-plus-circle h-25" viewBox="0 0 16 16">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                    <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                </svg>
+                <p class="my-2">
+                    Add new action
+                </p>
+            </button>
+            <EditForm Model="@NewAction">
+                <div class="m-4 @AddFormVisibility">
+                    <input id="name" @bind="@NewAction.Name" type="text" class="form-control mb-3" placeholder="Action Name" aria-label="Action Name" required>
+
+                    <textarea class="form-control mb-3" id="note" @bind="@NewAction.Note" rows="1" placeholder="Note"></textarea>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="lasting" @bind="@NewAction.Lasting">
+                        <label class="form-check-label" for="lasting">Create Lasting Action</label>
+                    </div>
+                    <button class="btn btn-primary" @onclick="AddAction">Add Action</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+    @for (int i = 0; i < Actions.Count; i++)
+    {
+        int current = i;
+        <div class="col-12 col-xl-3 col-md-6 col-lg-4">
+            <div class="card build-up-card text-center my-2">
+                <div class="card-header">
+                    @Actions[current].Name
+                </div>
+                <div class="card-body">
+                    <p class="card-text overflow-auto">@Actions[current].Note</p>
+                    <a href="#" class="btn btn-primary" @onclick="@(e => LogEntry(current))">
+                        @(Actions[current].Lasting
+                            ? (LastTimeEntries[current] != null && LastTimeEntries[current].TimeEnd == null
+                                ? "Log End" : "Log New")
+                            : "Log"
+                        )
+                    </a>
+                </div>
+                <div class="card-footer text-muted overflow-hidden">
+                    @(LastTimeEntries[current] == null ? "No Activity" : (Actions[current].Lasting ? (
+                            LastTimeEntries[current].TimeEnd == null
+                                ? $"Started: {(DateTime.Now - LastTimeEntries[current].TimeStart).ToString("%d' d '%h' h '%m' min'")} ago"
+                                : $"Last Activity: {(DateTime.Now - LastTimeEntries[current].TimeEnd.Value).ToString("%d' d '%h' h '%m' min'")} ago"
+                        )
+                        : $"Last Activity: {(DateTime.Now - LastTimeEntries[current].TimeStart).ToString("%d' d '%h' h '%m' min'")} ago")
+                    )
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    List<Data.Action> Actions = new List<Data.Action>();
+    List<TimeEntry> LastTimeEntries = new List<TimeEntry>();
+    string AddButtonVisibility = String.Empty,
+        AddFormVisibility = "d-none",
+        ErrorMsg;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshActions();
+    }
+
+    private async Task RefreshActions()
+    {
+        Actions = await actionServices.GetActionsAsync();
+        LastTimeEntries.Clear();
+        Actions.ForEach(async (a) => LastTimeEntries.Add(await timeEntryServices.GetLastTimeEntryByIdAsync(a.ID)));
+    }
+
+    public Data.Action NewAction { get; set; } = new Data.Action();
+    private void ShowAddForm()
+    {
+        AddButtonVisibility = "d-none";
+        AddFormVisibility = String.Empty;
+    }
+
+    private async Task AddAction()
+    {
+        if (String.IsNullOrEmpty(NewAction.Name)) return;
+        NewAction.CreateTime = DateTime.Now;
+
+        int result = await actionServices.AddActionAsync(NewAction);
+
+        if (result == -1)
+        {
+            ErrorMsg = "Error occurred while creating the Action. Please try again.";
+            return;
+        }
+
+        NewAction = new Data.Action();
+        AddButtonVisibility = ErrorMsg = String.Empty;
+        AddFormVisibility = "d-none";
+
+        await RefreshActions();
+    }
+
+    private async Task LogEntry(int i)
+    {
+        if (!Actions[i].Lasting || LastTimeEntries[i] == null || LastTimeEntries[i].TimeEnd.HasValue)
+        {
+            TimeEntry timeToAdd = new TimeEntry
+            {
+                ActionID = Actions[i].ID,
+                TimeStart = DateTime.Now
+            };
+            int result = await timeEntryServices.AddTimeEntryAsync(timeToAdd);
+            if (result == -1)
+            {
+                ErrorMsg = "Error occurred while logging the time. Please try again.";
+                return;
+            }
+        }
+        else
+        {
+            bool result = await timeEntryServices.UpdateTimeEntryAsync(LastTimeEntries[i].ID, DateTime.Now);
+            if (!result)
+            {
+                ErrorMsg = "Error occurred while updating the time. Please try again.";
+                return;
+            }
+        }
+        ErrorMsg = String.Empty;
+        LastTimeEntries[i] = await timeEntryServices.GetLastTimeEntryByIdAsync(Actions[i].ID);
+    }
+}

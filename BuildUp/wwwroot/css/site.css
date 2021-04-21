@@ -1,0 +1,95 @@
+html, body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+a, .btn-link {
+    color: #0366d6;
+}
+
+.btn-primary {
+    color: #fff;
+    background-color: #1b6ec2;
+    border-color: #1861ac;
+}
+
+.content {
+    padding-top: 1.1rem;
+}
+
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid #26b050;
+}
+
+.invalid {
+    outline: 1px solid red;
+}
+
+.validation-message {
+    color: red;
+}
+
+#blazor-error-ui {
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+    #blazor-error-ui .dismiss {
+        cursor: pointer;
+        position: absolute;
+        right: 0.75rem;
+        top: 0.5rem;
+    }
+
+
+
+.build-up-card {
+    height: 250px;
+}
+
+    .build-up-card .card-header {
+    font-size: 1.5rem;
+}
+
+    .build-up-card .card-text {
+        height: 60px;
+    }
+
+    .build-up-card .card-footer {
+        height: 40px;
+    }
+
+textarea {
+    resize: none;
+}
+
+.details-card {
+    height: calc(50vh - 3.5rem);
+    margin-bottom: 1rem;
+}
+
+#time-entries-card {
+    height: calc(100vh - 6rem);
+}
+
+
+::-webkit-scrollbar {
+    width: 2px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+}
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
